@@ -1,0 +1,546 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>HealthBridge</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap');
+
+  :root {
+    --primary: #0ea5e9;
+    --primary-hover: #0284c7;
+    --danger: #f43f5e;
+    --danger-hover: #e11d48;
+    --success: #10b981;
+    --text-dark: #0f172a;
+    --text-muted: #64748b;
+    --glass-bg: rgba(255, 255, 255, 0.75);
+    --glass-border: rgba(255, 255, 255, 0.5);
+  }
+
+  body {
+    margin: 0;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    color: var(--text-dark);
+    background: linear-gradient(-45deg, #e0f2fe, #f0fdfa, #cffafe, #e0e7ff);
+    background-size: 400% 400%;
+    animation: gradientBG 15s ease infinite;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding-left: 100px;
+    box-sizing: border-box;
+    overflow-x: hidden;
+  }
+
+  @keyframes gradientBG {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+  }
+
+  .page {
+    display: none;
+    width: 100%;
+    max-width: 900px;
+    min-height: 75vh;
+    background: var(--glass-bg);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid var(--glass-border);
+    border-radius: 32px;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.1);
+    padding: 50px;
+    position: relative;
+  }
+
+  /* Slide Transitions */
+  .active { 
+    display: block; 
+    animation: slideIn 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  }
+
+  @keyframes slideIn {
+    from { opacity: 0; transform: translateX(50px); }
+    to { opacity: 1; transform: translateX(0); }
+  }
+
+  .topbar {
+    background: transparent;
+    color: var(--text-dark);
+    font-size: 36px;
+    font-weight: 800;
+    text-align: left;
+    padding-bottom: 20px;
+    margin-bottom: 30px;
+    border-bottom: 2px solid rgba(14, 165, 233, 0.2);
+  }
+
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 24px;
+    margin-bottom: 30px;
+  }
+
+  .card {
+    background: linear-gradient(135deg, #ffffff, #f8fafc);
+    border: 1px solid #e2e8f0;
+    border-radius: 24px;
+    padding: 30px 20px;
+    text-align: center;
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--text-dark);
+    box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    cursor: pointer;
+  }
+
+  /* Selection Animations */
+  .card:active, .btn:active, .nav button:active {
+    transform: scale(0.95);
+  }
+
+  .card:hover {
+    transform: translateY(-8px) scale(1.03);
+    box-shadow: 0 20px 25px -5px rgba(14, 165, 233, 0.25);
+    border-color: var(--primary);
+    color: var(--primary);
+  }
+
+  .store-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    text-align: left;
+    margin-bottom: 10px;
+  }
+
+  .counter {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .counter button {
+    width: 35px;
+    height: 35px;
+    border-radius: 10px;
+    border: none;
+    background: var(--primary);
+    color: white;
+    cursor: pointer;
+    font-weight: bold;
+    transition: 0.2s;
+  }
+
+  .counter button:hover { background: var(--primary-hover); }
+
+  .total-bar {
+    margin-top: 20px;
+    padding: 20px;
+    background: white;
+    border-radius: 20px;
+    text-align: right;
+    font-size: 22px;
+    font-weight: 800;
+    border: 2px solid var(--primary);
+  }
+
+  .btn {
+    width: 100%;
+    padding: 16px;
+    border: none;
+    border-radius: 16px;
+    background: var(--primary);
+    color: white;
+    font-size: 18px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 10px 15px -3px rgba(14, 165, 233, 0.3);
+    margin-top: 15px;
+  }
+
+  .btn-red {
+    background: var(--danger);
+    font-size: 22px;
+    padding: 20px;
+  }
+
+  .nav {
+    position: fixed;
+    left: 30px;
+    top: 50%;
+    transform: translateY(-50%);
+    display: flex;
+    flex-direction: column;
+    background: var(--glass-bg);
+    backdrop-filter: blur(15px);
+    border: 1px solid var(--glass-border);
+    padding: 20px 15px;
+    border-radius: 30px;
+    gap: 15px;
+    z-index: 1000;
+  }
+
+  .nav button {
+    background: white;
+    border: none;
+    color: var(--text-muted);
+    width: 54px;
+    height: 54px;
+    border-radius: 18px;
+    font-size: 22px;
+    cursor: pointer;
+    transition: all 0.3s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .nav button.nav-active {
+    background: var(--primary);
+    color: white;
+    box-shadow: 0 4px 12px rgba(14, 165, 233, 0.4);
+  }
+
+  .nav button:hover {
+    background: var(--primary);
+    color: white;
+    transform: scale(1.1);
+  }
+
+  .chat-box {
+    height: 45vh;
+    overflow-y: auto;
+    background: rgba(255, 255, 255, 0.6);
+    border-radius: 24px;
+    padding: 20px;
+    border: 1px solid #e2e8f0;
+    margin-bottom: 20px;
+  }
+
+  .user {
+    background: var(--primary);
+    color: white;
+    padding: 14px 20px;
+    border-radius: 20px 20px 4px 20px;
+    margin: 10px 0 10px auto;
+    max-width: 75%;
+    width: fit-content;
+    animation: pop 0.3s ease-out;
+  }
+
+  .bot {
+    background: white;
+    color: var(--text-dark);
+    padding: 14px 20px;
+    border-radius: 20px 20px 20px 4px;
+    margin: 10px 0;
+    max-width: 75%;
+    width: fit-content;
+    white-space: pre-line;
+    animation: pop 0.3s ease-out;
+  }
+
+  @keyframes pop {
+    from { transform: scale(0.8); opacity: 0; }
+    to { transform: scale(1); opacity: 1; }
+  }
+
+  .chat-input {
+    display: flex;
+    gap: 12px;
+    background: white;
+    padding: 12px;
+    border-radius: 20px;
+  }
+
+  .chat-input input {
+    flex: 1;
+    border: none;
+    padding: 10px 15px;
+    outline: none;
+    background: transparent;
+  }
+
+  #map {
+    height: 350px;
+    border-radius: 28px;
+    margin-bottom: 25px;
+    border: 6px solid white;
+  }
+
+  @media (max-width: 850px) {
+    body { padding-left: 0; padding-top: 20px; }
+    .page { margin: 0 15px 120px 15px; padding: 30px 20px; }
+    .nav { left: 20px; right: 20px; bottom: 20px; top: auto; transform: none; flex-direction: row; justify-content: space-between; }
+  }
+</style>
+</head>
+
+<body>
+
+<div id="home" class="page active">
+<div class="topbar" id="t_home">HealthBridge</div>
+
+<div class="grid">
+<div class="card" onclick="openPage('ai')" id="t_ai">🤖 AI Health</div>
+<div class="card" onclick="openPage('doctors')" id="t_doc">👨‍⚕️ Doctors</div>
+<div class="card" onclick="openPage('hospitals')" id="t_hos">🏥 Hospitals</div>
+<div class="card" onclick="openPage('store')" id="t_store">🛒 Store</div>
+</div>
+
+<button class="btn btn-red" onclick="call108()" id="t_108">📞 CALL 108</button>
+<div id="emergencyStatus"></div>
+</div>
+
+<div id="ai" class="page">
+<div class="topbar" id="t_ai_title">AI Health Assistant</div>
+
+<div class="chat-box" id="chatBox">
+<div class="bot" id="t_ai_hint">Type or speak your symptoms.</div>
+</div>
+
+<div class="chat-input">
+<input id="chatInput">
+<button class="mic" onclick="voice()">🎙️</button>
+<button class="btn" onclick="send()" id="t_send">Send</button>
+</div>
+
+<button class="btn" onclick="callDoctorFromChat()" id="t_call_doc">📞 Call Doctor</button>
+<div id="chatCallStatus"></div>
+</div>
+
+<div id="doctors" class="page">
+<div class="topbar" id="t_doc_title">Doctors</div>
+<select id="doctorSelect" class="card">
+<option id="opt_ped">Pediatrician</option>
+<option id="opt_der">Dermatologist</option>
+<option id="opt_car">Cardiologist</option>
+<option id="opt_gen">General Physician</option>
+<option id="opt_ort">Orthopedic</option>
+</select>
+<button class="btn" onclick="callDoctor('Video')" id="t_video">📹 Video Call</button>
+<button class="btn" onclick="callDoctor('Voice')" id="t_voice">📞 Voice Call</button>
+<div id="callStatus"></div>
+</div>
+
+<div id="hospitals" class="page">
+<div class="topbar" id="t_hos_title">Hospitals Near You</div>
+<div id="map"></div>
+
+<div class="card" id="h1">Government Hospital – 2 km</div>
+<div class="card" id="h2">Primary Health Center – 1 km</div>
+<div class="card" id="h3">City Care Hospital – 3.5 km</div>
+<div class="card" id="h4">LifeLine Hospital – 4.2 km</div>
+<div class="card" id="h5">Community Clinic – 1.5 km</div>
+<div class="card" id="h6">Mother & Child Hospital – 2.8 km</div>
+<div class="card" id="h7">Urban Multispeciality – 5.0 km</div>
+</div>
+
+<div id="store" class="page">
+<div class="topbar" id="t_store_title">Medical Store</div>
+<div id="items"></div>
+<div class="total-bar">
+  <span id="t_total_label">Total Money:</span> ₹<span id="totalAmount">0</span>
+</div>
+<button class="btn" onclick="placeOrder()" id="t_order">🛒 Place Order</button>
+</div>
+
+<div id="settings" class="page">
+<div class="topbar" id="t_settings">Settings</div>
+<select class="card" onchange="setLanguage(this.value)">
+<option value="en">English</option>
+<option value="hi">Hindi</option>
+</select>
+</div>
+
+<div class="nav">
+<button onclick="openPage('home')" id="nav-home" class="nav-active"><i class="fa fa-house"></i></button>
+<button onclick="openPage('ai')" id="nav-ai"><i class="fa fa-comment-medical"></i></button>
+<button onclick="openPage('doctors')" id="nav-doctors"><i class="fa fa-user-doctor"></i></button>
+<button onclick="openPage('hospitals')" id="nav-hospitals"><i class="fa fa-hospital"></i></button>
+<button onclick="openPage('store')" id="nav-store"><i class="fa fa-store"></i></button>
+<button onclick="openPage('settings')" id="nav-settings"><i class="fa fa-gear"></i></button>
+</div>
+
+<script>
+let lang="en";
+
+/* LANGUAGE SWITCH – UI ONLY */
+function setLanguage(l){
+lang=l;
+const hi=l==="hi";
+
+t_home.innerText = hi?"हेल्थब्रिज":"HealthBridge";
+t_ai.innerText = hi?"🤖 एआई स्वास्थ्य":"🤖 AI Health";
+t_doc.innerText = hi?"👨‍⚕️ डॉक्टर":"👨‍⚕️ Doctors";
+t_hos.innerText = hi?"🏥 अस्पताल":"🏥 Hospitals";
+t_store.innerText = hi?"🛒 स्टोर":"🛒 Store";
+t_108.innerText = hi?"📞 108 पर कॉल करें":"📞 CALL 108";
+
+t_ai_title.innerText = hi?"एआई स्वास्थ्य सहायक":"AI Health Assistant";
+t_ai_hint.innerText = hi?"अपने लक्षण लिखें या बोलें।":"Type or speak your symptoms.";
+t_send.innerText = hi?"भेजें":"Send";
+t_call_doc.innerText = hi?"📞 डॉक्टर को कॉल करें":"📞 Call Doctor";
+
+t_doc_title.innerText = hi?"डॉक्टर":"Doctors";
+t_video.innerText = hi?"📹 वीडियो कॉल":"📹 Video Call";
+t_voice.innerText = hi?"📞 वॉइस कॉल":"📞 Voice Call";
+
+// Doctors Options
+opt_ped.innerText = hi?"बाल रोग विशेषज्ञ":"Pediatrician";
+opt_der.innerText = hi?"त्वचा विशेषज्ञ":"Dermatologist";
+opt_car.innerText = hi?"हृदय रोग विशेषज्ञ":"Cardiologist";
+opt_gen.innerText = hi?"सामान्य चिकित्सक":"General Physician";
+opt_ort.innerText = hi?"हड्डी रोग विशेषज्ञ":"Orthopedic";
+
+// Hospitals
+t_hos_title.innerText = hi?"आपके पास के अस्पताल":"Hospitals Near You";
+h1.innerText = hi?"सरकारी अस्पताल – 2 किमी":"Government Hospital – 2 km";
+h2.innerText = hi?"प्राथमिक स्वास्थ्य केंद्र – 1 किमी":"Primary Health Center – 1 km";
+h3.innerText = hi?"सिटी केयर अस्पताल – 3.5 किमी":"City Care Hospital – 3.5 km";
+h4.innerText = hi?"लाइफलाइन अस्पताल – 4.2 किमी":"LifeLine Hospital – 4.2 km";
+h5.innerText = hi?"सामुदायिक क्लिनिक – 1.5 किमी":"Community Clinic – 1.5 km";
+h6.innerText = hi?"मातृ एवं शिशु अस्पताल – 2.8 किमी":"Mother & Child Hospital – 2.8 km";
+h7.innerText = hi?"अर्बन मल्टीस्पेशलिटी – 5.0 किमी":"Urban Multispeciality – 5.0 km";
+
+t_store_title.innerText = hi?"मेडिकल स्टोर":"Medical Store";
+t_total_label.innerText = hi?"कुल राशि:":"Total Money:";
+t_order.innerText = hi?"🛒 ऑर्डर करें":"🛒 Place Order";
+t_settings.innerText = hi?"सेटिंग्स":"Settings";
+}
+
+/* NAV */
+function openPage(id){
+document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+document.getElementById(id).classList.add('active');
+document.querySelectorAll('.nav button').forEach(b=>b.classList.remove('nav-active'));
+document.getElementById('nav-'+id).classList.add('nav-active');
+if(id==="hospitals") setTimeout(loadMap,200);
+}
+
+function call108(){
+emergencyStatus.innerHTML =
+"<div class='card' style='animation: pop 0.3s forwards;'>📞 "+(lang==="hi"?"आपातकालीन सेवा को कॉल किया जा रहा है":"Calling emergency services")+" (108)…</div>";
+}
+
+function callDoctorFromChat(){
+chatCallStatus.innerHTML =
+"<div class='card' style='animation: pop 0.3s forwards;'>📞 "+(lang==="hi"?"डॉक्टर को कॉल किया जा रहा है":"Doctor is being called")+"…</div>";
+}
+
+/* AI DATA – WORKING EN + HI */
+const aiData=[
+{keys:["fever","बुखार"],reply:"Fever means your body is fighting an infection.\nMedicine: Paracetamol\nCall doctor if more than 2 days.\n\nबुखार का मतलब है कि शरीर संक्रमण से लड़ रहा है।\nदवा: पैरासिटामोल\n2 दिन से अधिक रहे तो डॉक्टर को कॉल करें।"},
+{keys:["cold","सर्दी"],reply:"Common cold is viral.\nMedicine: Steam, Cetirizine.\n\nसर्दी आमतौर पर वायरल होती है।\nदवा: भाप, सिट्रीज़ीन"},
+{keys:["cough","खांसी"],reply:"Cough clears throat.\nMedicine: Cough syrup.\n\nखांसी गले की जलन दूर करती है।\nदवा: खांसी की दवा"},
+{keys:["chest","सीने"],reply:"Chest pain is serious.\nCall doctor immediately.\n\nसीने में दर्द गंभीर है।\nतुरंत डॉक्टर को कॉल करें।"}
+];
+
+function send(){
+let text=chatInput.value.toLowerCase();
+if(!text.trim()) return;
+chatBox.innerHTML+=`<div class="user">${text}</div>`;
+let reply="Please consult a doctor if symptoms persist.";
+for(let item of aiData){
+if(item.keys.some(k=>text.includes(k))){
+reply=item.reply;
+break;
+}}
+chatBox.innerHTML+=`<div class="bot">${reply}</div>`;
+chatInput.value="";
+chatBox.scrollTop=chatBox.scrollHeight;
+}
+
+function voice(){
+let r=new(window.SpeechRecognition||window.webkitSpeechRecognition)();
+r.lang=lang==="hi"?"hi-IN":"en-US";
+r.start();
+r.onresult=e=>chatInput.value=e.results[0][0].transcript;
+}
+
+function callDoctor(type){
+callStatus.innerHTML=`<div class="card" style='animation: pop 0.3s forwards;'>${type} calling ${doctorSelect.value}…</div>`;
+}
+
+/* STORE */
+const meds=[
+  {name: "Paracetamol", price: 40},
+  {name: "ORS", price: 20},
+  {name: "Bandage", price: 15},
+  {name: "Thermometer", price: 150},
+  {name: "Cough Syrup", price: 85},
+  {name: "Vitamin Tablets", price: 120},
+  {name: "Sanitizer", price: 50},
+  {name: "Face Mask", price: 10},
+  {name: "Gloves", price: 30},
+  {name: "BP Monitor", price: 1200}
+];
+let cart={};
+
+items.innerHTML=meds.map(m=>`
+<div class="card store-item">
+  <span>${m.name} (₹${m.price})</span>
+  <span class="counter">
+    <button onclick="remove('${m.name}', ${m.price})">-</button>
+    <span id="${m.name}">0</span>
+    <button onclick="add('${m.name}', ${m.price})">+</button>
+  </span>
+</div>`).join("");
+
+function add(name, price){
+  cart[name]=(cart[name]||0)+1;
+  document.getElementById(name).innerText=cart[name];
+  calculateTotal();
+}
+
+function remove(name, price){
+  if(cart[name]>0){
+    cart[name]--;
+    document.getElementById(name).innerText=cart[name];
+    calculateTotal();
+  }
+}
+
+function calculateTotal() {
+  let total = 0;
+  meds.forEach(m => {
+    total += (cart[m.name] || 0) * m.price;
+  });
+  document.getElementById("totalAmount").innerText = total;
+}
+
+function placeOrder(){
+let t=Object.values(cart).reduce((a,b)=>a+b,0);
+let total = document.getElementById("totalAmount").innerText;
+if(t === 0) {
+  alert(lang==="hi"?"कृपया कोई वस्तु चुनें":"Please select some items");
+  return;
+}
+alert(lang==="hi"?`ऑर्डर सफल! कुल राशि: ₹${total}`:`Order placed! Total amount: ₹${total}`);
+}
+
+/* MAP */
+let map;
+function loadMap(){
+if(map) return;
+map=L.map('map').setView([12.9716,77.5946],13);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+L.marker([12.9716,77.5946]).addTo(map)
+.bindPopup(lang==="hi"?"आप यहाँ हैं":"You are here");
+}
+</script>
+
+</body>
+</html>
